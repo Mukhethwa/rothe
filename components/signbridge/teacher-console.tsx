@@ -5,7 +5,16 @@ import { Mic, MicOff, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DEMO_PROMPTS } from "@/lib/signbridge/languages";
-import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useMicLevel } from "@/hooks/use-mic-level";
+import { useSpeechRecognition, type SpeechPhase } from "@/hooks/use-speech-recognition";
+
+const PHASE_LABEL: Record<SpeechPhase, string> = {
+  idle: "stopped",
+  starting: "connecting to speech service…",
+  "mic-open": "listening, waiting for sound",
+  "hearing-sound": "hearing sound…",
+  "hearing-speech": "hearing speech ✓",
+};
 import { useWakeLock } from "@/hooks/use-wake-lock";
 
 interface TeacherConsoleProps {
@@ -19,9 +28,11 @@ interface TeacherConsoleProps {
 
 /** Mic capture + typed input + one-click demo prompts. */
 export function TeacherConsole({ spokenLang, onPhrase, className, children }: TeacherConsoleProps) {
-  const { listening, interim, error, start, stop } = useSpeechRecognition(spokenLang, (text) => onPhrase(text, spokenLang));
+  const { listening, interim, error, phase, silentRounds, start, stop } = useSpeechRecognition(spokenLang, (text) => onPhrase(text, spokenLang));
   const [draft, setDraft] = useState("");
   useWakeLock(listening);
+  const mic = useMicLevel(listening);
+  const soundReachingBrowser = mic.level > 0.08;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -53,6 +64,27 @@ export function TeacherConsole({ spokenLang, onPhrase, className, children }: Te
           <p className="min-h-5 truncate text-sm text-muted-foreground italic">{interim || (listening ? "…" : "Or type / pick a demo sentence below")}</p>
         </div>
       </div>
+
+      {listening && (
+        <div className="space-y-1.5 rounded-lg border bg-muted/40 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="w-20 shrink-0 text-xs text-muted-foreground">Mic level</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" role="meter" aria-valuemin={0} aria-valuemax={1} aria-valuenow={mic.level} aria-label="Microphone level">
+              <div className={cn("h-full rounded-full transition-[width] duration-75", soundReachingBrowser ? "bg-emerald-500" : "bg-zinc-400")} style={{ width: `${Math.round(mic.level * 100)}%` }} />
+            </div>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            {mic.deviceLabel ? `Using: ${mic.deviceLabel}` : mic.error ? `Mic check failed: ${mic.error}` : "Opening microphone…"} · {PHASE_LABEL[phase]}
+          </p>
+          {silentRounds >= 1 && phase !== "hearing-speech" && (
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              {soundReachingBrowser
+                ? "Sound is reaching the browser but no speech is recognised. Speak closer, louder, or try Teacher speaks = English (US)."
+                : "No sound from this mic. Pick the right microphone: click the padlock/site icon in the address bar → Site settings → Microphone, or chrome://settings/content/microphone, then restart listening."}
+            </p>
+          )}
+        </div>
+      )}
 
       {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
