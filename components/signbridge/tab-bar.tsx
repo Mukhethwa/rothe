@@ -11,8 +11,13 @@ const TABS = [
   { href: "/classroom", label: "Classroom", icon: Users, match: (p: string) => p.startsWith("/class") },
 ] as const;
 
+/** Reads the current URL, so it must render inside <Suspense> on dynamic routes (see AppShell). */
 export function TabBar() {
-  const pathname = usePathname();
+  return <TabBarView pathname={usePathname()} />;
+}
+
+/** Static tab bar; `pathname` decides the active tab ("" = none, used as the Suspense fallback). */
+export function TabBarView({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Main"
