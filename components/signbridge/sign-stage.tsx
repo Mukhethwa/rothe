@@ -2,31 +2,35 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { spellable } from "@/lib/signbridge/handshapes";
 import { mediaUrl, type LanguagePack } from "@/lib/signbridge/sign-library";
 import type { GlossToken, Utterance } from "@/lib/signbridge/types";
+import { HandAvatar } from "./hand-avatar";
 
 type Step =
   | { type: "clip"; tokenIndex: number; gloss: string; src: string }
-  | { type: "card"; tokenIndex: number; gloss: string }
-  | { type: "letter"; tokenIndex: number; gloss: string; letter: string; src?: string };
+  | { type: "letter"; tokenIndex: number; gloss: string; letterIndex: number; letter: string }
+  | { type: "gap"; tokenIndex: number; gloss: string };
 
-const CARD_MS = 950;
-const LETTER_MS = 420;
+const LETTER_MS = 360;
+const GAP_MS = 260;
 const CLIP_MAX_MS = 5_000;
-const END_PAUSE_MS = 350;
+const END_PAUSE_MS = 500;
 const BASE_CLIP_RATE = 1.25;
 
+/** Recorded clip when one exists; otherwise fingerspell the word on the hand avatar. */
 function buildSteps(tokens: GlossToken[], pack: LanguagePack): Step[] {
   return tokens.flatMap<Step>((token, tokenIndex) => {
     const clip = pack.signs[token.gloss];
     if (clip) return [{ type: "clip", tokenIndex, gloss: token.gloss, src: mediaUrl(clip) }];
-    if (token.kind === "fingerspell") {
-      return [...token.gloss.replace(/[^\p{L}\p{N}]/gu, "")].map((letter) => {
-        const art = pack.alphabet[letter.toUpperCase()];
-        return { type: "letter" as const, tokenIndex, gloss: token.gloss, letter, src: art ? mediaUrl(art) : undefined };
-      });
-    }
-    return [{ type: "card", tokenIndex, gloss: token.gloss }];
+    const letters: Step[] = spellable(token.gloss).map((letter, letterIndex) => ({
+      type: "letter",
+      tokenIndex,
+      gloss: token.gloss,
+      letterIndex,
+      letter,
+    }));
+    return letters.length > 0 ? [...letters, { type: "gap", tokenIndex, gloss: token.gloss }] : [];
   });
 }
 
@@ -65,7 +69,7 @@ export function SignStage({ utterance, pack, speed, onActiveToken, onStart, onDo
       const t = setTimeout(() => onDone(id), END_PAUSE_MS);
       return () => clearTimeout(t);
     }
-    const ms = stepType === "clip" ? CLIP_MAX_MS : stepType === "letter" ? LETTER_MS : CARD_MS;
+    const ms = stepType === "clip" ? CLIP_MAX_MS : stepType === "letter" ? LETTER_MS : GAP_MS;
     const t = setTimeout(() => setStepIndex((i) => i + 1), ms / speed);
     return () => clearTimeout(t);
   }, [id, stepIndex, stepType, speed, onDone]);
@@ -74,18 +78,11 @@ export function SignStage({ utterance, pack, speed, onActiveToken, onStart, onDo
     if (videoRef.current) videoRef.current.playbackRate = BASE_CLIP_RATE * speed;
   }, [stepIndex, speed]);
 
-  if (!utterance) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-white/60">
-        <HandsIcon className="size-16 text-white/30" />
-        <p className="max-w-xs text-sm">Waiting for the teacher to speak…</p>
-      </div>
-    );
-  }
+  const letter = step?.type === "letter" ? step.letter : null;
 
   return (
-    <div className="flex h-full w-full items-center justify-center" aria-live="polite">
-      {step?.type === "clip" && (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4" aria-live="polite">
+      {step?.type === "clip" ? (
         <video
           key={`${stepIndex}-${step.src}`}
           ref={videoRef}
@@ -97,25 +94,31 @@ export function SignStage({ utterance, pack, speed, onActiveToken, onStart, onDo
           onError={() => setStepIndex((i) => i + 1)}
           className="h-full max-h-full w-full object-contain"
         />
+      ) : (
+        <>
+          <HandAvatar letter={letter} className="h-56 w-auto drop-shadow-[0_10px_30px_rgba(251,191,36,0.15)] sm:h-72" />
+          <SpelledWord step={step} idle={!utterance} />
+        </>
       )}
-      {step?.type === "card" && (
-        <div key={stepIndex} className="animate-in fade-in zoom-in-95 flex flex-col items-center gap-2 duration-200">
-          <span className="text-5xl font-bold tracking-wide text-white sm:text-7xl">{step.gloss}</span>
-          <span className="text-xs uppercase tracking-widest text-white/40">sign · clip not recorded yet</span>
-        </div>
-      )}
-      {step?.type === "letter" && (
-        <div key={stepIndex} className="animate-in fade-in flex flex-col items-center gap-3 duration-150">
-          {step.src ? (
-            // eslint-disable-next-line @next/next/no-img-element -- local handshape art, dynamic per language
-            <img src={step.src} alt={`Fingerspell ${step.letter}`} className="h-48 w-48 object-contain sm:h-64 sm:w-64" />
-          ) : (
-            <span className="text-8xl font-black text-amber-300 sm:text-9xl">{step.letter.toUpperCase()}</span>
-          )}
-          <span className="text-xs uppercase tracking-widest text-white/40">fingerspelling {step.gloss}</span>
-        </div>
-      )}
-      {!step && <span className="text-sm text-white/40">✓</span>}
+    </div>
+  );
+}
+
+function SpelledWord({ step, idle }: { step: Step | undefined; idle: boolean }) {
+  if (idle) return <p className="text-sm text-white/50">Waiting for the teacher to speak…</p>;
+  if (!step || step.type === "clip") return <p className="h-9" />;
+  const letters = spellable(step.gloss);
+  const active = step.type === "letter" ? step.letterIndex : -1;
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <p className="font-mono text-2xl font-bold tracking-[0.25em] sm:text-3xl">
+        {letters.map((ch, i) => (
+          <span key={i} className={cn("transition-colors", i === active ? "text-amber-300" : i < active || active === -1 ? "text-white" : "text-white/30")}>
+            {ch}
+          </span>
+        ))}
+      </p>
+      <p className="text-[10px] uppercase tracking-widest text-white/40">fingerspelling · prototype avatar</p>
     </div>
   );
 }
