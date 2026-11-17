@@ -1,7 +1,7 @@
 import { ruleGloss } from "./rule-gloss";
 import type { GlossResult, SignLanguageCode } from "./types";
 
-const REQUEST_TIMEOUT_MS = 8_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 
 function isGlossResult(value: unknown): value is GlossResult {
   if (typeof value !== "object" || value === null) return false;

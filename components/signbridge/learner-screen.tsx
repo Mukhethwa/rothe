@@ -75,7 +75,7 @@ export function LearnerScreen({ signLanguage, current, lastFinished, backlog, ma
       {result?.fallbackReason && (
         <p role="status" className="border-b border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs text-amber-200">
           {result.fallbackReason === "not_configured"
-            ? "AI translation is off: ANTHROPIC_API_KEY is not set on the server. Showing basic offline gloss (no real sign grammar)."
+            ? "AI translation is off: set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY on the server. Showing basic offline gloss (no real sign grammar)."
             : "AI translation could not be reached. Showing basic offline gloss until it is back."}
         </p>
       )}

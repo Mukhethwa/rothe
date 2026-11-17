@@ -18,7 +18,7 @@ Teacher speaks ──► Web Speech API ──► /api/gloss (Claude) ──► 
 
 ```bash
 pnpm install
-cp .env.example .env.local   # add ANTHROPIC_API_KEY
+cp .env.example .env.local   # add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY
 pnpm dev
 ```
 
@@ -54,7 +54,9 @@ Sign clips should be recorded or reviewed by native Deaf signers of each languag
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | server | Claude translation (`/api/gloss`) |
+| `GEMINI_API_KEY` | server | Gemini translation, free tier (used when no Anthropic key) |
+| `GEMINI_MODEL` | server, optional | Override model (default `gemini-flash-lite-latest`) |
+| `ANTHROPIC_API_KEY` | server | Claude translation (preferred when set) |
 | `ANTHROPIC_MODEL` | server, optional | Override model (default `claude-opus-5-5`) |
 | `NEXT_PUBLIC_CONVEX_URL` | client | Classroom broadcast mode |
 
