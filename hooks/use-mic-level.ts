@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+const OPEN_TIMEOUT_MS = 4_000;
+const OPEN_TIMEOUT_MESSAGE = "The selected microphone is not responding.";
+
 export interface MicLevel {
   /** 0..1 smoothed input level. */
   level: number;
@@ -26,8 +29,24 @@ export function useMicLevel(active: boolean): MicLevel {
 
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (cancelled) return;
+        // A broken or virtual default device can make getUserMedia hang forever rather than fail.
+        const opened = navigator.mediaDevices.getUserMedia({ audio: true });
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(OPEN_TIMEOUT_MESSAGE)), OPEN_TIMEOUT_MS),
+        );
+        stream = await Promise.race([opened, timeout]).catch(async (e: Error) => {
+          if (e.message !== OPEN_TIMEOUT_MESSAGE) throw e;
+          const inputs = (await navigator.mediaDevices.enumerateDevices())
+            .filter((d) => d.kind === "audioinput" && d.label)
+            .map((d) => d.label);
+          throw new Error(
+            `${OPEN_TIMEOUT_MESSAGE}${inputs.length ? ` Available: ${inputs.join(" | ")}.` : ""} Choose a working one via the mic icon in the address bar, then reload.`,
+          );
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         const label = stream.getAudioTracks()[0]?.label || "Default microphone";
         ctx = new AudioContext();
         const analyser = ctx.createAnalyser();

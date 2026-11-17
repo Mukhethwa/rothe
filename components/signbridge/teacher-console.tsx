@@ -74,8 +74,9 @@ export function TeacherConsole({ spokenLang, onPhrase, className, children }: Te
             </div>
           </div>
           <p className="truncate text-xs text-muted-foreground">
-            {mic.deviceLabel ? `Using: ${mic.deviceLabel}` : mic.error ? `Mic check failed: ${mic.error}` : "Opening microphone…"} · {PHASE_LABEL[phase]}
+            {mic.deviceLabel ? `Using: ${mic.deviceLabel}` : mic.error ? "Microphone problem" : "Opening microphone…"} · {PHASE_LABEL[phase]}
           </p>
+          {mic.error && <p className="text-xs font-medium text-destructive">{mic.error}</p>}
           {silentRounds >= 1 && phase !== "hearing-speech" && (
             <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
               {soundReachingBrowser
