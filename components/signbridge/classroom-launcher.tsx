@@ -2,29 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
 import { Presentation, Users } from "lucide-react";
-import { api } from "@/convex/_generated/api";
-import { convexEnabled } from "@/app/convex-client-provider";
 import { cn } from "@/lib/utils";
 import { card } from "./teacher-controls";
 
 /** Start a broadcast classroom (teacher) or join one by code (learner). */
 export function ClassroomLauncher() {
-  if (!convexEnabled) {
-    return (
-      <p className={cn(card, "p-5 text-[15px] leading-relaxed text-white/60")}>
-        Classroom mode isn&apos;t switched on yet (it needs a Convex backend: <code className="text-white/80">npx convex dev</code>).
-        The <span className="text-white">Live</span> tab works on a single phone right now.
-      </p>
-    );
-  }
-  return <Launcher />;
-}
-
-function Launcher() {
   const router = useRouter();
-  const createClassroom = useMutation(api.classrooms.create);
   const [code, setCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +17,13 @@ function Launcher() {
     setCreating(true);
     setError(null);
     try {
-      const newCode = await createClassroom({ title: "Lesson" });
+      const res = await fetch("/api/classroom", { method: "POST" });
+      if (res.status === 503) throw new Error("Classroom mode isn't configured on the server yet.");
+      if (!res.ok) throw new Error("Could not create a classroom. Check your connection and try again.");
+      const { code: newCode } = (await res.json()) as { code: string };
       router.push(`/class/${newCode}/teach`);
-    } catch {
-      setError("Could not create a classroom. Check your connection and try again.");
+    } catch (e) {
+      setError((e as Error).message);
       setCreating(false);
     }
   };

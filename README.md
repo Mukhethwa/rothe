@@ -12,7 +12,7 @@ Teacher speaks ──► Web Speech API ──► /api/gloss (Claude) ──► 
 - **Pick the sign language per learner.** The AI layer and the sign media are separate, so switching SASL → NSL re-signs the same sentence.
 - **Never stalls.** If the AI call fails or times out, an offline rule-based engine takes over (badge shows *Offline*).
 - **Real-time queue.** Translation runs in parallel while playback stays in spoken order; *Live* button skips the backlog.
-- **Classroom mode (Convex).** The teacher's device broadcasts; every learner's phone signs it in **their own** sign language.
+- **Classroom mode (Azure Web PubSub).** The teacher's phone broadcasts each sentence to a room; every learner's phone signs it in **their own** sign language. The classroom code is the room, so there is no database.
 
 ### Run it
 
@@ -24,15 +24,16 @@ pnpm dev
 
 Open http://localhost:3000 in **Chrome or Edge** (Web Speech API). Single-device mode works with no other setup; without an API key it uses the offline engine.
 
-Classroom mode needs Convex:
+Classroom mode needs an Azure Web PubSub resource (Free tier is enough for a class):
 
 ```bash
-npx convex dev   # logs in, creates the deployment, writes NEXT_PUBLIC_CONVEX_URL to .env.local
+az webpubsub create -n <name> -g <resource-group> -l southafricanorth --sku Free_F1
+az webpubsub key show -n <name> -g <resource-group> --query primaryConnectionString -o tsv   # -> AZURE_WEBPUBSUB_CONNECTION_STRING
 ```
 
-Then *Start a classroom* on the teacher's device, and open `/class/<CODE>` on learner devices.
+Then open the **Classroom** tab: *Start a classroom* on the teacher's phone, and learners join with the code (or open `/class/<CODE>`).
 
-> Phones and tablets need **HTTPS** for the microphone: deploy to Vercel (add `ANTHROPIC_API_KEY` and `NEXT_PUBLIC_CONVEX_URL` in project settings), and run `npx convex deploy` for production Convex.
+> Phones need **HTTPS** for the microphone: deploy to Vercel and add the variables below in the project settings.
 
 ### Adding real sign clips
 
@@ -59,16 +60,16 @@ Sign clips should be recorded or reviewed by native Deaf signers of each languag
 | `GEMINI_API_KEY` | server | Gemini translation (free tier), tried last |
 | `GEMINI_MODEL` | server, optional | Override model (default `gemini-flash-lite-latest`) |
 | `ANTHROPIC_MODEL` | server, optional | Override model (default `claude-opus-5-5`) |
-| `NEXT_PUBLIC_CONVEX_URL` | client | Classroom broadcast mode |
+| `AZURE_WEBPUBSUB_CONNECTION_STRING` | server | Classroom broadcast (Azure Web PubSub) |
 
 ### Layout
 
 | Path | What |
 |---|---|
-| `app/api/gloss/route.ts` | Speech → gloss via Claude (structured output, low effort for latency) |
-| `app/page.tsx` | Single-device live translator + classroom launcher |
+| `app/api/gloss/route.ts` | Speech → sign gloss (Azure OpenAI, then Claude, then Gemini) |
+| `app/api/classroom/route.ts` | Classroom codes and Web PubSub room tokens |
+| `app/page.tsx`, `app/classroom` | Live tab (single phone) and Classroom tab |
 | `app/class/[code]/teach`, `app/class/[code]` | Teacher console / learner screen |
-| `convex/classrooms.ts` | Classroom codes and the phrase broadcast |
 | `components/signbridge/` | Teacher console, learner screen, sign player |
 | `hooks/` | Continuous speech recognition, ordered sign queue, screen wake lock |
 | `lib/signbridge/` | Languages, offline gloss engine, sign media manifest |
