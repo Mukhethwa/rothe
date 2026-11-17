@@ -37,19 +37,12 @@ export function LearnerScreen({ signLanguage, current, lastFinished, backlog, ma
   const shown = current ?? lastFinished;
   const result = shown?.result;
   const onActiveToken = useCallback((i: number | null) => setActiveToken(i), []);
-  const offline = result?.source === "offline";
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {/* Signing stage */}
       <section className="relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-[radial-gradient(120%_80%_at_50%_0%,#24303a_0%,#14181d_55%,#0d1013_100%)] shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]">
-        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2">
-          <span className="rounded-full bg-black/40 px-3 py-1.5 text-[12px] font-semibold text-white/90 backdrop-blur-md">
-            {signLanguage}
-            <span className={cn("ml-1.5 font-medium", offline ? "text-amber-300" : "text-emerald-300")}>
-              · {result ? (offline ? "Offline" : "AI grammar") : "Ready"}
-            </span>
-          </span>
+        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-end gap-2">
           <div className="flex items-center gap-1.5">
             {backlog > 1 && (
               <button

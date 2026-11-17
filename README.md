@@ -1,3 +1,5 @@
+<p align="center"><img src="public/rothe-logo.png" alt="Rothe: for all of us" width="280"></p>
+
 ## Rothe
 
 Rothe ("all of us" in Tshivenda) turns a teacher's live speech into **local sign language** for Deaf learners: South African (SASL), Nigerian (NSL), Kenyan (KSL) and American (ASL) Sign Language.

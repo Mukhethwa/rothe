@@ -5,7 +5,6 @@ import { useSignQueue } from "@/hooks/use-sign-queue";
 import { useTeacherMic } from "@/hooks/use-teacher-mic";
 import type { SignLanguageCode, Utterance } from "@/lib/signbridge/types";
 import { LearnerScreen } from "./learner-screen";
-import { StatusPill, type AppStatus } from "./site-header";
 import { DemoChips, LanguageBar, MicButton, SpokenCard, TypeBar } from "./teacher-controls";
 import { TranscriptList } from "./transcript-list";
 
@@ -14,13 +13,6 @@ export function lastFinishedOf(utterances: Utterance[]): Utterance | null {
     if (utterances[i].status === "done" && utterances[i].result) return utterances[i];
   }
   return null;
-}
-
-export function statusOf(listening: boolean, utterances: Utterance[], signing: boolean): AppStatus {
-  if (utterances.some((u) => u.status === "translating")) return "translating";
-  if (signing) return "signing";
-  if (listening) return "listening";
-  return "ready";
 }
 
 const noopSubscribe = () => () => {};
@@ -51,16 +43,11 @@ export function LiveTranslator() {
 
   const lastFinished = useMemo(() => lastFinishedOf(utterances), [utterances]);
   const lastText = (queue.current ?? utterances.at(-1))?.text ?? null;
-  const status = statusOf(mic.listening, utterances, !!queue.current);
-
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-3 pt-1">
-        <div>
-          <p className="text-[13px] text-white/45">{hello}</p>
-          <h1 className="text-[24px] leading-tight font-semibold tracking-tight text-white">What&apos;s the lesson today?</h1>
-        </div>
-        <StatusPill status={status} />
+      <div className="pt-1">
+        <p className="text-[13px] text-white/45">{hello}</p>
+        <h1 className="text-[24px] leading-tight font-semibold tracking-tight text-white">What&apos;s the lesson today?</h1>
       </div>
 
       <LanguageBar spokenLang={spokenLang} onSpokenLangChange={setSpokenLang} signLanguage={signLanguage} onSignLanguageChange={changeSignLanguage} />

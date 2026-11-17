@@ -9,8 +9,7 @@ import { isValidCode, normaliseCode, type ClassroomPhrase } from "@/lib/signbrid
 import type { SignLanguageCode } from "@/lib/signbridge/types";
 import { cn } from "@/lib/utils";
 import { LearnerScreen } from "./learner-screen";
-import { lastFinishedOf, statusOf } from "./live-translator";
-import { StatusPill } from "./site-header";
+import { lastFinishedOf } from "./live-translator";
 import { TeacherConsole } from "./teacher-console";
 import { card, LanguageBar } from "./teacher-controls";
 
@@ -134,10 +133,7 @@ function LearnRoom({ code }: { code: string }) {
         <p className="text-[13px] text-white/50">
           Class <span className="font-mono font-semibold text-white">{code}</span>
         </p>
-        <div className="flex items-center gap-2">
-          <ChannelPill status={status} />
-          <StatusPill status={statusOf(false, queue.utterances, !!queue.current)} />
-        </div>
+        <ChannelPill status={status} />
       </div>
       <LanguageBar signLanguage={signLanguage} onSignLanguageChange={setSignLanguage} />
       <LearnerScreen
