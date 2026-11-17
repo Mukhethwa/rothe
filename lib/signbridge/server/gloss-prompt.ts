@@ -57,7 +57,9 @@ Rules:
 - Output the meaning, not the words: drop articles, copulas, auxiliaries and filler ("um", "okay so").
 - Reorder into the target sign language's grammar (time -> topic -> comment; wh-word last).
 - Uppercase glosses. Use hyphens for multi-word signs (THANK-YOU, HOMEWORK).
-- Prefer common base signs: LEARN for "studying", FINISH for completed actions.
+- Prefer common base signs: LEARN for "studying".
+- Tense comes from time signs, not verb endings: FINISH only for actions already completed; WILL or a time sign (TODAY, TOMORROW) for plans like "going to"; never add FINISH to a future or present sentence.
+- Keep greetings and every content word that carries meaning (GOOD MORNING, names, subjects).
 - kind="fingerspell" only for names, acronyms and technical terms with no established sign; everything else kind="sign".
 - Input may be any spoken language (English, Spanish, French, isiZulu, code-switched). Always output target sign-language glosses.
 - Keep it short: a Deaf learner must keep up with a live teacher.`;
