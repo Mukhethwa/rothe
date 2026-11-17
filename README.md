@@ -1,38 +1,71 @@
 ## MASLink
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+MASLink turns a teacher's live speech into **local sign language** for Deaf learners: South African (SASL), Nigerian (NSL), Kenyan (KSL) and American (ASL) Sign Language.
 
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Teacher speaks ──► Web Speech API ──► /api/gloss (Claude) ──► sign gloss ──► sign player
+ (en / es / fr /     (in browser)      grammar, not           TODAY WE LEARN   clips, gloss cards,
+  zu / af / sw)                        word-for-word          ELECTRICITY      fingerspelling
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Grammar-aware translation.** Claude reorders speech into sign grammar (time → topic → comment, wh-word last), drops filler words, and marks facial grammar (e.g. eyebrows raised for yes/no questions).
+- **Pick the sign language per learner.** The AI layer and the sign media are separate, so switching SASL → NSL re-signs the same sentence.
+- **Never stalls.** If the AI call fails or times out, an offline rule-based engine takes over (badge shows *Offline*).
+- **Real-time queue.** Translation runs in parallel while playback stays in spoken order; *Live* button skips the backlog.
+- **Classroom mode (Convex).** The teacher's device broadcasts; every learner's phone signs it in **their own** sign language.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Run it
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm install
+cp .env.example .env.local   # add ANTHROPIC_API_KEY
+pnpm dev
+```
 
-## Learn More
+Open http://localhost:3000 in **Chrome or Edge** (Web Speech API). Single-device mode works with no other setup; without an API key it uses the offline engine.
 
-To learn more about Next.js, take a look at the following resources:
+Classroom mode needs Convex:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npx convex dev   # logs in, creates the deployment, writes NEXT_PUBLIC_CONVEX_URL to .env.local
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Then *Start a classroom* on the teacher's device, and open `/class/<CODE>` on learner devices.
 
-## Deploy on Vercel
+> Phones and tablets need **HTTPS** for the microphone: deploy to Vercel (add `ANTHROPIC_API_KEY` and `NEXT_PUBLIC_CONVEX_URL` in project settings), and run `npx convex deploy` for production Convex.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Adding real sign clips
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Without clips every sign shows as a gloss card, and fingerspelled words show letter by letter. To add video:
+
+1. Record short clips (1–2 s, plain background), e.g. `public/signs/sasl/hello.mp4`.
+2. List them in `public/signs/manifest.json`:
+
+```json
+{ "SASL": { "signs": { "HELLO": "sasl/hello.mp4", "LEARN": "sasl/learn.mp4" },
+            "alphabet": { "A": "sasl/alphabet/a.png" } } }
+```
+
+Gloss keys are uppercase, hyphenated for multi-word signs (`THANK-YOU`). No code change needed.
+
+Sign clips should be recorded or reviewed by native Deaf signers of each language.
+
+### Environment
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | server | Claude translation (`/api/gloss`) |
+| `ANTHROPIC_MODEL` | server, optional | Override model (default `claude-opus-5-5`) |
+| `NEXT_PUBLIC_CONVEX_URL` | client | Classroom broadcast mode |
+
+### Layout
+
+| Path | What |
+|---|---|
+| `app/api/gloss/route.ts` | Speech → gloss via Claude (structured output, low effort for latency) |
+| `app/page.tsx` | Single-device live translator + classroom launcher |
+| `app/class/[code]/teach`, `app/class/[code]` | Teacher console / learner screen |
+| `convex/classrooms.ts` | Classroom codes and the phrase broadcast |
+| `components/signbridge/` | Teacher console, learner screen, sign player |
+| `hooks/` | Continuous speech recognition, ordered sign queue, screen wake lock |
+| `lib/signbridge/` | Languages, offline gloss engine, sign media manifest |
