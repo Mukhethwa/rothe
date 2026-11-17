@@ -16,6 +16,8 @@ export interface GlossResult {
   nonManual: string;
   /** "ai" = Claude translation, "offline" = local rule-based fallback. */
   source: "ai" | "offline";
+  /** Why the offline engine was used, when it was. */
+  fallbackReason?: "not_configured" | "unavailable";
 }
 
 export type UtteranceStatus = "translating" | "ready" | "playing" | "done";

@@ -31,6 +31,14 @@ function getRecognitionCtor(): RecognitionCtor | null {
 }
 
 const FATAL_ERRORS = new Set(["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"]);
+const MAX_TRANSIENT_ERRORS = 3;
+const ERROR_MESSAGES: Record<string, string> = {
+  "not-allowed": "Microphone blocked. Open this page in Chrome or Edge and allow mic access (embedded/in-app browsers block it). You can type below.",
+  "service-not-allowed": "This browser's speech service is unavailable. Use Chrome or Edge, or type below.",
+  "audio-capture": "No microphone found. Plug one in, or type below.",
+  "language-not-supported": "This spoken language isn't supported by the browser's speech engine. Pick another, or type below.",
+  network: "Speech service unreachable (needs internet; Chrome/Edge only). Type below instead.",
+};
 
 /**
  * Continuous speech recognition that survives the browser's silence timeouts by
@@ -69,6 +77,7 @@ export function useSpeechRecognition(lang: string, onFinal: (text: string) => vo
     rec.interimResults = true;
 
     rec.onresult = (event) => {
+      consecutiveErrors = 0;
       let interimText = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
@@ -82,14 +91,16 @@ export function useSpeechRecognition(lang: string, onFinal: (text: string) => vo
       setInterim(interimText.trim());
     };
 
+    let consecutiveErrors = 0;
+
     rec.onerror = (event) => {
-      if (!FATAL_ERRORS.has(event.error)) return; // no-speech / network / aborted: onend restarts
+      // "no-speech" just means silence; keep listening.
+      if (event.error === "no-speech" || event.error === "aborted") return;
+      consecutiveErrors += 1;
+      // "network" etc. are retried by onend, but a loop of them means speech is not working: say so.
+      if (!FATAL_ERRORS.has(event.error) && consecutiveErrors < MAX_TRANSIENT_ERRORS) return;
       wantListeningRef.current = false;
-      setError(
-        event.error === "not-allowed"
-          ? "Microphone permission denied. Allow mic access, or type below."
-          : `Speech recognition error: ${event.error}`,
-      );
+      setError(ERROR_MESSAGES[event.error] ?? `Speech recognition stopped (${event.error}). Type below instead.`);
     };
 
     rec.onend = () => {

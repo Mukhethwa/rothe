@@ -23,13 +23,14 @@ export async function fetchGloss(text: string, sourceLang: string, signLanguage:
       body: JSON.stringify({ text, sourceLang, signLanguage }),
       signal: controller.signal,
     });
+    if (res.status === 503) return { ...ruleGloss(text), fallbackReason: "not_configured" };
     if (!res.ok) throw new Error(`Gloss API ${res.status}`);
     const data: unknown = await res.json();
     if (!isGlossResult(data) || data.tokens.length === 0) throw new Error("Malformed gloss response");
     return { ...data, source: "ai" };
   } catch (err) {
     console.warn("AI gloss unavailable, using offline engine:", err);
-    return ruleGloss(text);
+    return { ...ruleGloss(text), fallbackReason: "unavailable" };
   } finally {
     clearTimeout(timer);
   }
