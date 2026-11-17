@@ -18,7 +18,7 @@ Teacher speaks ──► Web Speech API ──► /api/gloss (Claude) ──► 
 
 ```bash
 pnpm install
-cp .env.example .env.local   # add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY
+cp .env.example .env.local   # add Azure OpenAI, Anthropic and/or Gemini keys (tried in that order)
 pnpm dev
 ```
 
@@ -54,9 +54,10 @@ Sign clips should be recorded or reviewed by native Deaf signers of each languag
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `GEMINI_API_KEY` | server | Gemini translation, free tier (used when no Anthropic key) |
+| `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` | server | Azure OpenAI translation, tried first (`AZURE_OPENAI_API_VERSION` optional) |
+| `ANTHROPIC_API_KEY` | server | Claude translation, tried second |
+| `GEMINI_API_KEY` | server | Gemini translation (free tier), tried last |
 | `GEMINI_MODEL` | server, optional | Override model (default `gemini-flash-lite-latest`) |
-| `ANTHROPIC_API_KEY` | server | Claude translation (preferred when set) |
 | `ANTHROPIC_MODEL` | server, optional | Override model (default `claude-opus-5-5`) |
 | `NEXT_PUBLIC_CONVEX_URL` | client | Classroom broadcast mode |
 

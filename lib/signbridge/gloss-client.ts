@@ -1,7 +1,8 @@
 import { ruleGloss } from "./rule-gloss";
 import type { GlossResult, SignLanguageCode } from "./types";
 
-const REQUEST_TIMEOUT_MS = 10_000;
+// Covers the server trying Azure (6s) and then Gemini before answering.
+const REQUEST_TIMEOUT_MS = 14_000;
 
 function isGlossResult(value: unknown): value is GlossResult {
   if (typeof value !== "object" || value === null) return false;
