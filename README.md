@@ -4,13 +4,25 @@
 
 Rothe ("all of us" in Tshivenda) turns a teacher's live speech into **local sign language** for Deaf learners: South African (SASL), Nigerian (NSL), Kenyan (KSL) and American (ASL) Sign Language.
 
+**Live demo:** https://rothe-app-4335.azurewebsites.net (open in Chrome or Edge; allow the microphone)
+
+### The African problem
+
+Deaf learners across Africa sit in classrooms where the lesson is spoken in a language they cannot hear. Qualified sign-language interpreters are scarce and expensive, so most Deaf learners in mainstream and rural schools get no interpretation at all, and written English is a second language for them, so captions alone don't close the gap. In South Africa, SASL is an official language, yet far fewer Deaf learners finish school than their hearing peers. Each country also signs differently (SASL, NSL, KSL), so one generic tool does not fit. Rothe puts an interpreter-style layer on the phone the learner already has: the teacher speaks once, and every learner sees the lesson in their own sign language's grammar.
+
 ```
-Teacher speaks ──► Web Speech API ──► /api/gloss (Claude) ──► sign gloss ──► sign player
- (en / es / fr /     (in browser)      grammar, not           TODAY WE LEARN   clips, gloss cards,
-  zu / af / sw)                        word-for-word          ELECTRICITY      fingerspelling
+Teacher speaks ──► Web Speech API ──► /api/gloss (Azure OpenAI) ──► sign gloss ──► sign player
+ (en / es / fr /     (in browser)      grammar, not                 TODAY WE LEARN   hand avatar,
+  zu / af / sw)                        word-for-word                ELECTRICITY      sign clips
 ```
 
-- **Grammar-aware translation.** Claude reorders speech into sign grammar (time → topic → comment, wh-word last), drops filler words, and marks facial grammar (e.g. eyebrows raised for yes/no questions).
+### How we kept tokens low
+
+1. One short system prompt, and each request sends only the single sentence just spoken: no chat history, no lesson context.
+2. Strict JSON-schema output on a small, fast model (`gpt-4.1-mini`), so replies are a few dozen tokens of gloss with no prose.
+3. Speech-to-text runs free in the browser, the signing is drawn locally, and an offline rule engine handles failures, so the model is only called for the grammar step.
+
+- **Grammar-aware translation.** The model reorders speech into sign grammar (time → topic → comment, wh-word last), drops filler words, and marks facial grammar (e.g. eyebrows raised for yes/no questions).
 - **Pick the sign language per learner.** The AI layer and the sign media are separate, so switching SASL → NSL re-signs the same sentence.
 - **Never stalls.** If the AI call fails or times out, an offline rule-based engine takes over (badge shows *Offline*).
 - **Real-time queue.** Translation runs in parallel while playback stays in spoken order; *Live* button skips the backlog.

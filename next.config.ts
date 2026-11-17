@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Self-contained server bundle (.next/standalone) for Azure App Service: `node server.js`.
+  output: "standalone",
   experimental: {
     agentFeedback: true,
   },
