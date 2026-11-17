@@ -24,11 +24,11 @@ export function StatusPill({ status }: { status: AppStatus }) {
 
 export function SiteHeader({ children }: { children?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0a0b0d]/75 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2 text-[19px] font-semibold tracking-tight text-white">
+    <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0a0b0d]/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[520px] items-center justify-between gap-4 px-4">
+        <Link href="/" className="flex items-center gap-2 text-[21px] font-semibold tracking-tight text-white" aria-label="Rothe home">
           <HandsIcon className="size-6 text-emerald-400" />
-          MASLink <span className="font-normal text-white/45">Live</span>
+          Rothe
         </Link>
         {children}
       </div>

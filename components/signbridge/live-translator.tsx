@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useSignQueue } from "@/hooks/use-sign-queue";
 import { useTeacherMic } from "@/hooks/use-teacher-mic";
 import type { SignLanguageCode, Utterance } from "@/lib/signbridge/types";
@@ -23,13 +23,19 @@ export function statusOf(listening: boolean, utterances: Utterance[], signing: b
   return "ready";
 }
 
-/**
- * Single-device mode: the phone/tablet listens and signs on the same screen.
- * Phone-first single column; two columns from `lg` (stage left, controls right).
- */
+const noopSubscribe = () => () => {};
+
+function greeting(): string {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+/** Single-device mode: the phone listens and signs on the same screen. Always a phone-width column. */
 export function LiveTranslator() {
   const [spokenLang, setSpokenLang] = useState("en-ZA");
   const [signLanguage, setSignLanguage] = useState<SignLanguageCode>("SASL");
+  // Client clock only: a prerendered page must not bake in the build server's time of day.
+  const hello = useSyncExternalStore(noopSubscribe, greeting, () => "Welcome");
   const queue = useSignQueue();
   const { enqueue, utterances } = queue;
 
@@ -48,41 +54,33 @@ export function LiveTranslator() {
   const status = statusOf(mic.listening, utterances, !!queue.current);
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
-      <div className="flex flex-col gap-3 lg:sticky lg:top-6">
-        <div className="flex items-center justify-between lg:hidden">
-          <span className="text-[13px] text-white/45">Live classroom</span>
-          <StatusPill status={status} />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-end justify-between gap-3 pt-1">
+        <div>
+          <p className="text-[13px] text-white/45">{hello}</p>
+          <h1 className="text-[24px] leading-tight font-semibold tracking-tight text-white">What&apos;s the lesson today?</h1>
         </div>
-        <LanguageBar spokenLang={spokenLang} onSpokenLangChange={setSpokenLang} signLanguage={signLanguage} onSignLanguageChange={changeSignLanguage} />
-        <LearnerScreen
-          signLanguage={queue.current?.signLanguage ?? signLanguage}
-          current={queue.current}
-          lastFinished={lastFinished}
-          backlog={queue.backlog}
-          markPlaying={queue.markPlaying}
-          markDone={queue.markDone}
-          replay={queue.replay}
-          skipToLive={queue.skipToLive}
-        />
+        <StatusPill status={status} />
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="hidden items-center justify-between lg:flex">
-          <span className="text-[13px] text-white/45">Teacher</span>
-          <StatusPill status={status} />
-        </div>
-        <SpokenCard live={mic.interim} last={lastText} langTag={spokenLang} />
-        <DemoChips onPick={onPhrase} />
-        <TypeBar onSubmit={(text) => onPhrase(text, spokenLang)} />
-        <div className="hidden lg:block">
-          <MicButton mic={mic} />
-        </div>
-        <TranscriptList utterances={utterances} onReplay={queue.replay} onClear={queue.clear} />
-      </div>
+      <LanguageBar spokenLang={spokenLang} onSpokenLangChange={setSpokenLang} signLanguage={signLanguage} onSignLanguageChange={changeSignLanguage} />
+      <LearnerScreen
+        signLanguage={queue.current?.signLanguage ?? signLanguage}
+        current={queue.current}
+        lastFinished={lastFinished}
+        backlog={queue.backlog}
+        markPlaying={queue.markPlaying}
+        markDone={queue.markDone}
+        replay={queue.replay}
+        skipToLive={queue.skipToLive}
+      />
+      <SpokenCard live={mic.interim} last={lastText} langTag={spokenLang} />
+      <DemoChips onPick={onPhrase} />
+      <TypeBar onSubmit={(text) => onPhrase(text, spokenLang)} />
+      <TranscriptList utterances={utterances} onReplay={queue.replay} onClear={queue.clear} />
 
-      {/* Thumb-reach mic on phones and tablets */}
-      <div className="sticky bottom-0 z-20 -mx-4 bg-gradient-to-t from-[#0a0b0d] via-[#0a0b0d]/95 to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden">
+      {/* Thumb-reach mic, pinned just above the tab bar */}
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 -mx-4 bg-gradient-to-t from-[#0a0b0d] via-[#0a0b0d]/95 to-transparent px-4 pt-6 pb-3">
         <MicButton mic={mic} />
       </div>
     </div>

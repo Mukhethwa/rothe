@@ -5,16 +5,17 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { Presentation, Users } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { Button } from "@/components/ui/button";
 import { convexEnabled } from "@/app/convex-client-provider";
+import { cn } from "@/lib/utils";
+import { card } from "./teacher-controls";
 
 /** Start a broadcast classroom (teacher) or join one by code (learner). */
 export function ClassroomLauncher() {
   if (!convexEnabled) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Classroom broadcast needs Convex: run <code className="rounded bg-muted px-1">npx convex dev</code> to set{" "}
-        <code className="rounded bg-muted px-1">NEXT_PUBLIC_CONVEX_URL</code>. Single-device mode above works without it.
+      <p className={cn(card, "p-5 text-[15px] leading-relaxed text-white/60")}>
+        Classroom mode isn&apos;t switched on yet (it needs a Convex backend: <code className="text-white/80">npx convex dev</code>).
+        The <span className="text-white">Live</span> tab works on a single phone right now.
       </p>
     );
   }
@@ -47,36 +48,47 @@ function Launcher() {
   };
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-2 rounded-xl border p-4">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <Presentation className="size-4" /> I&apos;m the teacher
-        </h3>
-        <p className="text-sm text-muted-foreground">Speak once. Every learner&apos;s device signs it in their own sign language.</p>
-        <Button onClick={start} disabled={creating} size="lg" className="mt-auto">
-          {creating ? "Creating…" : "Start a classroom"}
-        </Button>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </div>
-      <form onSubmit={join} className="flex flex-col gap-2 rounded-xl border p-4">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <Users className="size-4" /> I&apos;m a learner
-        </h3>
-        <p className="text-sm text-muted-foreground">Enter the code on the teacher&apos;s screen.</p>
-        <div className="mt-auto flex gap-2">
+    <div className="flex flex-col gap-3">
+      <form onSubmit={join} className={cn(card, "flex flex-col gap-3 p-5")}>
+        <h2 className="flex items-center gap-2 text-[17px] font-semibold text-white">
+          <Users className="size-5 text-emerald-400" /> Join as a learner
+        </h2>
+        <p className="text-[15px] text-white/55">Enter the code on the teacher&apos;s screen.</p>
+        <div className="flex gap-2">
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="e.g. K7M2Q"
+            placeholder="K7M2Q"
             maxLength={8}
             autoCapitalize="characters"
-            className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 font-mono text-sm uppercase tracking-widest outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            autoComplete="off"
+            aria-label="Classroom code"
+            className="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/[0.05] px-4 font-mono text-[18px] tracking-[0.3em] text-white uppercase outline-none placeholder:text-white/25 focus-visible:ring-2 focus-visible:ring-emerald-400/50"
           />
-          <Button type="submit" size="lg" variant="outline" disabled={!code.trim()}>
+          <button
+            type="submit"
+            disabled={!code.trim()}
+            className="h-12 rounded-2xl bg-emerald-400 px-6 text-[16px] font-semibold text-zinc-950 transition active:scale-95 disabled:opacity-40"
+          >
             Join
-          </Button>
+          </button>
         </div>
       </form>
+      <div className={cn(card, "flex flex-col gap-3 p-5")}>
+        <h2 className="flex items-center gap-2 text-[17px] font-semibold text-white">
+          <Presentation className="size-5 text-emerald-400" /> Start as the teacher
+        </h2>
+        <p className="text-[15px] text-white/55">Speak once. Every learner&apos;s phone signs it in their own sign language.</p>
+        <button
+          type="button"
+          onClick={start}
+          disabled={creating}
+          className="h-12 rounded-2xl bg-white/10 text-[16px] font-semibold text-white transition active:scale-[0.98] hover:bg-white/15 disabled:opacity-50"
+        >
+          {creating ? "Creating…" : "Start a classroom"}
+        </button>
+        {error && <p className="text-[13px] text-red-300">{error}</p>}
+      </div>
     </div>
   );
 }

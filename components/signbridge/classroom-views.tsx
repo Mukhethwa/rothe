@@ -70,7 +70,7 @@ function TeachRoom({ code }: { code: string }) {
   if (room === null) return <RoomNotFound code={code} />;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+    <div className="flex flex-col gap-3 pt-1">
       <section className="rounded-[28px] border border-white/[0.08] bg-[radial-gradient(120%_80%_at_50%_0%,#24303a_0%,#14181d_60%)] p-6 text-center">
         <p className="text-[12px] font-semibold tracking-[0.12em] text-white/50 uppercase">Learners join with code</p>
         <p className="mt-1 font-mono text-5xl font-bold tracking-[0.3em] text-emerald-300">{room.code}</p>
@@ -122,7 +122,7 @@ function LearnRoom({ code }: { code: string }) {
   if (room === null) return <RoomNotFound code={code} />;
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-3">
+    <div className="flex flex-col gap-3 pt-1">
       <div className="flex items-center justify-between">
         <p className="text-[13px] text-white/50">
           Class <span className="font-mono font-semibold text-white">{room.code}</span> · live

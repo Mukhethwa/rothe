@@ -14,9 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MASLink — live classroom speech to local sign language",
+  title: "Rothe — the lesson, signed for all of us",
   description:
-    "MASLink listens to the teacher and signs the lesson in the learner's own sign language: South African, Nigerian, Kenyan and more.",
+    "Rothe (Tshivenda: 'all of us') listens to the teacher and signs the lesson in the learner's own sign language: South African, Nigerian, Kenyan and more.",
+  applicationName: "Rothe",
+  appleWebApp: { capable: true, title: "Rothe", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
