@@ -2,20 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FastForward, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { signLanguageInfo } from "@/lib/signbridge/languages";
 import { loadManifest, packFor, type LanguagePack, type SignManifest } from "@/lib/signbridge/sign-library";
-import type { SentenceType, SignLanguageCode, Utterance } from "@/lib/signbridge/types";
+import type { SignLanguageCode, Utterance } from "@/lib/signbridge/types";
 import { SignStage } from "./sign-stage";
+import { card } from "./teacher-controls";
 
-const SENTENCE_LABEL: Record<SentenceType, string> = {
-  statement: "Statement",
-  yes_no_question: "Yes/No question",
-  wh_question: "Wh- question",
-  negation: "Negation",
-  command: "Instruction",
-};
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
 
 interface LearnerScreenProps {
   signLanguage: SignLanguageCode;
@@ -29,11 +22,12 @@ interface LearnerScreenProps {
   className?: string;
 }
 
-/** The Deaf learner's view: sign playback, gloss strip with live highlight, and grammar cues. */
+/** The Deaf learner's view: signing stage plus the sign-grammar sequence with the live sign highlighted. */
 export function LearnerScreen({ signLanguage, current, lastFinished, backlog, markPlaying, markDone, replay, skipToLive, className }: LearnerScreenProps) {
   const [manifest, setManifest] = useState<SignManifest>({});
-  const [speed, setSpeed] = useState(1);
+  const [speedIndex, setSpeedIndex] = useState(1);
   const [activeToken, setActiveToken] = useState<number | null>(null);
+  const speed = SPEEDS[speedIndex];
 
   useEffect(() => {
     void loadManifest().then(setManifest);
@@ -42,103 +36,105 @@ export function LearnerScreen({ signLanguage, current, lastFinished, backlog, ma
   const pack: LanguagePack = useMemo(() => packFor(manifest, signLanguage), [manifest, signLanguage]);
   const shown = current ?? lastFinished;
   const result = shown?.result;
-  const info = signLanguageInfo(signLanguage);
   const onActiveToken = useCallback((i: number | null) => setActiveToken(i), []);
+  const offline = result?.source === "offline";
 
   return (
-    <section className={cn("flex min-h-0 flex-col overflow-hidden rounded-2xl bg-zinc-950 text-white shadow-xl ring-1 ring-white/10", className)}>
-      <header className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <span className="rounded bg-amber-400 px-1.5 py-0.5 font-mono text-[11px] font-bold text-zinc-950">{info.code}</span>
-          <span>{info.name}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {result && (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-                result.source === "ai" ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300",
-              )}
-              title={result.source === "ai" ? "Grammar-aware AI translation" : "Offline rule-based fallback"}
-            >
-              {result.source === "ai" ? "AI grammar" : "Offline"}
+    <div className={cn("flex flex-col gap-3", className)}>
+      {/* Signing stage */}
+      <section className="relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-[radial-gradient(120%_80%_at_50%_0%,#24303a_0%,#14181d_55%,#0d1013_100%)] shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]">
+        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2">
+          <span className="rounded-full bg-black/40 px-3 py-1.5 text-[12px] font-semibold text-white/90 backdrop-blur-md">
+            {signLanguage}
+            <span className={cn("ml-1.5 font-medium", offline ? "text-amber-300" : "text-emerald-300")}>
+              · {result ? (offline ? "Offline" : "AI grammar") : "Ready"}
             </span>
-          )}
-          {backlog > 1 && (
-            <Button size="xs" variant="secondary" onClick={skipToLive} title="Skip the backlog and jump to what the teacher is saying now">
-              <FastForward /> Live ({backlog})
-            </Button>
+          </span>
+          <div className="flex items-center gap-1.5">
+            {backlog > 1 && (
+              <button
+                type="button"
+                onClick={skipToLive}
+                className="flex items-center gap-1 rounded-full bg-emerald-400/20 px-3 py-1.5 text-[12px] font-semibold text-emerald-200 backdrop-blur-md"
+                title="Skip the backlog and jump to what the teacher is saying now"
+              >
+                <FastForward className="size-3.5" /> Live · {backlog}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSpeedIndex((i) => (i + 1) % SPEEDS.length)}
+              className="rounded-full bg-black/40 px-3 py-1.5 text-[12px] font-semibold text-white/90 tabular-nums backdrop-blur-md"
+              aria-label={`Signing speed ${speed}x, tap to change`}
+            >
+              {speed}× Speed
+            </button>
+          </div>
+        </div>
+
+        <div className="relative flex min-h-[330px] items-center justify-center pt-10 sm:min-h-[400px]">
+          <SignStage
+            key={current?.id ?? "idle"}
+            utterance={current}
+            pack={pack}
+            speed={speed}
+            onActiveToken={onActiveToken}
+            onStart={markPlaying}
+            onDone={markDone}
+          />
+          {!current && lastFinished?.result && (
+            <button
+              type="button"
+              onClick={() => replay(lastFinished.id)}
+              className="absolute right-3 bottom-3 flex size-10 items-center justify-center rounded-full bg-black/40 text-white/90 backdrop-blur-md"
+              aria-label="Replay last sentence"
+            >
+              <RotateCcw className="size-4" />
+            </button>
           )}
         </div>
-      </header>
+
+        {result && (
+          <div className="mx-3 mb-3 rounded-2xl bg-black/35 px-4 py-2.5 text-center text-[13px] text-white/80 backdrop-blur-md">
+            Facial cue: <span className="text-white">{/^(none|neutral)\b/i.test(result.nonManual.trim()) ? "Neutral face" : result.nonManual}</span>
+          </div>
+        )}
+      </section>
 
       {result?.fallbackReason && (
-        <p role="status" className="border-b border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs text-amber-200">
+        <p role="status" className="rounded-2xl bg-amber-400/10 px-4 py-2.5 text-[13px] text-amber-200">
           {result.fallbackReason === "not_configured"
-            ? "AI translation is off: set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY on the server. Showing basic offline gloss (no real sign grammar)."
-            : "AI translation could not be reached. Showing basic offline gloss until it is back."}
+            ? "AI translation is off on the server. Showing basic offline gloss."
+            : "AI translation unreachable. Showing basic offline gloss until it's back."}
         </p>
       )}
 
-      <div className="relative min-h-[260px] flex-1 sm:min-h-[340px]">
-        <SignStage
-          key={current?.id ?? "idle"}
-          utterance={current}
-          pack={pack}
-          speed={speed}
-          onActiveToken={onActiveToken}
-          onStart={markPlaying}
-          onDone={markDone}
-        />
-        {result && (
-          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] text-white/80">{SENTENCE_LABEL[result.sentenceType]}</span>
-            <span className="rounded-md bg-sky-500/20 px-2 py-1 text-[11px] text-sky-200">Face: {result.nonManual}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2 border-t border-white/10 px-4 py-3">
-        <div className="flex min-h-9 flex-wrap items-center gap-1.5" aria-label="Sign gloss">
+      {/* Sign grammar sequence */}
+      <section className={cn(card, "px-4 py-3.5")}>
+        <p className="mb-2.5 text-[12px] font-semibold tracking-[0.08em] text-white/45 uppercase">Sign grammar sequence</p>
+        <div className="flex min-h-9 flex-wrap gap-2" aria-label="Sign gloss">
           {result ? (
-            result.tokens.map((t, i) => (
-              <span
-                key={`${shown?.id}-${i}`}
-                className={cn(
-                  "rounded-md px-2 py-1 font-mono text-sm font-semibold transition-colors",
-                  current && activeToken === i ? "bg-amber-400 text-zinc-950" : "bg-white/10 text-white/80",
-                  t.kind === "fingerspell" && "underline decoration-dotted underline-offset-4",
-                )}
-              >
-                {t.gloss}
-              </span>
-            ))
+            result.tokens.map((t, i) => {
+              const active = !!current && activeToken === i;
+              return (
+                <span
+                  key={`${shown?.id}-${i}`}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-[14px] font-semibold tracking-wide transition-all duration-200",
+                    active
+                      ? "scale-105 bg-emerald-400 text-zinc-950 shadow-[0_0_24px_rgba(52,211,153,0.65)]"
+                      : "bg-white/[0.08] text-white/80",
+                  )}
+                >
+                  {t.gloss}
+                </span>
+              );
+            })
           ) : (
-            <span className="text-sm text-white/40">Sign grammar (gloss) appears here</span>
+            <span className="text-[14px] text-white/35">Signs appear here in sign-language order</span>
           )}
         </div>
-        {shown && <p className="truncate text-xs text-white/50">“{shown.text}”</p>}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <label className="flex items-center gap-2 text-xs text-white/60">
-            Speed
-            <input
-              type="range"
-              min={0.5}
-              max={2}
-              step={0.25}
-              value={speed}
-              onChange={(e) => setSpeed(Number(e.target.value))}
-              className="w-24 accent-amber-400"
-            />
-            <span className="w-8 tabular-nums">{speed}×</span>
-          </label>
-          {!current && lastFinished?.result && (
-            <Button size="xs" variant="secondary" onClick={() => replay(lastFinished.id)}>
-              <RotateCcw /> Replay
-            </Button>
-          )}
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

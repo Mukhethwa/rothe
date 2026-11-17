@@ -9,9 +9,10 @@ import { useSignQueue } from "@/hooks/use-sign-queue";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import type { SignLanguageCode } from "@/lib/signbridge/types";
 import { LearnerScreen } from "./learner-screen";
-import { SignLanguageSelect, SpokenLanguageSelect } from "./language-select";
-import { lastFinishedOf } from "./live-translator";
+import { lastFinishedOf, statusOf } from "./live-translator";
+import { StatusPill } from "./site-header";
 import { TeacherConsole } from "./teacher-console";
+import { LanguageBar } from "./teacher-controls";
 
 type CodeParams = Promise<{ code: string }>;
 
@@ -49,7 +50,6 @@ function TeachRoom({ code }: { code: string }) {
   const room = useQuery(api.classrooms.getByCode, { code });
   const phrases = useQuery(api.classrooms.recentPhrases, { code });
   const say = useMutation(api.classrooms.say);
-  const [spokenLang, setSpokenLang] = useState("en-ZA");
   const [sendError, setSendError] = useState<string | null>(null);
   const origin = useSyncExternalStore(
     noopSubscribe,
@@ -70,29 +70,16 @@ function TeachRoom({ code }: { code: string }) {
   if (room === null) return <RoomNotFound code={code} />;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <TeacherConsole spokenLang={spokenLang} onPhrase={onPhrase}>
-        <SpokenLanguageSelect value={spokenLang} onChange={setSpokenLang} />
-        {sendError && <p className="text-sm text-destructive">{sendError}</p>}
-      </TeacherConsole>
-      <section className="flex flex-col gap-4 rounded-2xl border bg-card p-4 shadow-sm">
-        <div className="rounded-xl bg-zinc-950 p-5 text-center text-white">
-          <p className="text-xs uppercase tracking-widest text-white/50">Learners join with code</p>
-          <p className="font-mono text-5xl font-black tracking-[0.3em] text-amber-300">{room.code}</p>
-          <p className="mt-2 break-all text-xs text-white/60">{joinUrl}</p>
-        </div>
-        <div>
-          <h2 className="mb-2 text-sm font-semibold">Broadcast so far</h2>
-          <ol className="flex max-h-80 flex-col-reverse gap-1.5 overflow-y-auto text-sm">
-            {(phrases ?? []).map((p) => (
-              <li key={p._id} className="rounded-lg border px-3 py-2">
-                {p.text}
-              </li>
-            ))}
-            {phrases?.length === 0 && <li className="text-muted-foreground">Nothing yet. Start talking.</li>}
-          </ol>
-        </div>
+    <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <section className="rounded-[28px] border border-white/[0.08] bg-[radial-gradient(120%_80%_at_50%_0%,#24303a_0%,#14181d_60%)] p-6 text-center">
+        <p className="text-[12px] font-semibold tracking-[0.12em] text-white/50 uppercase">Learners join with code</p>
+        <p className="mt-1 font-mono text-5xl font-bold tracking-[0.3em] text-emerald-300">{room.code}</p>
+        <p className="mt-2 text-[13px] break-all text-white/50">{joinUrl}</p>
       </section>
+      <div className="flex flex-col gap-3">
+        <TeacherConsole onPhrase={onPhrase} lastSaid={phrases?.at(-1)?.text ?? null} />
+        {sendError && <p className="rounded-2xl bg-red-500/10 px-4 py-2.5 text-[13px] text-red-300">{sendError}</p>}
+      </div>
     </div>
   );
 }
@@ -135,15 +122,15 @@ function LearnRoom({ code }: { code: string }) {
   if (room === null) return <RoomNotFound code={code} />;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Class <span className="font-mono font-semibold text-foreground">{room.code}</span> · live
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] text-white/50">
+          Class <span className="font-mono font-semibold text-white">{room.code}</span> · live
         </p>
-        <SignLanguageSelect value={signLanguage} onChange={setSignLanguage} className="min-w-64" />
+        <StatusPill status={statusOf(false, queue.utterances, !!queue.current)} />
       </div>
+      <LanguageBar signLanguage={signLanguage} onSignLanguageChange={setSignLanguage} />
       <LearnerScreen
-        className="min-h-[60dvh]"
         signLanguage={queue.current?.signLanguage ?? signLanguage}
         current={queue.current}
         lastFinished={lastFinished}

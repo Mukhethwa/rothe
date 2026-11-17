@@ -96,7 +96,7 @@ export function SignStage({ utterance, pack, speed, onActiveToken, onStart, onDo
         />
       ) : (
         <>
-          <HandAvatar letter={letter} className="h-56 w-auto drop-shadow-[0_10px_30px_rgba(251,191,36,0.15)] sm:h-72" />
+          <HandAvatar letter={letter} className="h-52 w-auto drop-shadow-[0_20px_40px_rgba(52,211,153,0.18)] sm:h-64" />
           <SpelledWord step={step} idle={!utterance} />
         </>
       )}
@@ -105,20 +105,21 @@ export function SignStage({ utterance, pack, speed, onActiveToken, onStart, onDo
 }
 
 function SpelledWord({ step, idle }: { step: Step | undefined; idle: boolean }) {
-  if (idle) return <p className="text-sm text-white/50">Waiting for the teacher to speak…</p>;
-  if (!step || step.type === "clip") return <p className="h-9" />;
+  if (idle) return <p className="h-[54px] text-[15px] text-white/45">Waiting for the teacher to speak…</p>;
+  if (!step || step.type === "clip") return <p className="h-[54px]" />;
   const letters = spellable(step.gloss);
   const active = step.type === "letter" ? step.letterIndex : -1;
   return (
-    <div className="flex flex-col items-center gap-1">
-      <p className="font-mono text-2xl font-bold tracking-[0.25em] sm:text-3xl">
+    <div className="flex flex-col items-center gap-1.5">
+      <p className="rounded-full border border-white/10 bg-black/40 px-5 py-2 text-[17px] font-semibold tracking-[0.18em] backdrop-blur-md">
+        <span className="mr-2 text-[11px] font-semibold tracking-[0.12em] text-white/45">SIGNING</span>
         {letters.map((ch, i) => (
-          <span key={i} className={cn("transition-colors", i === active ? "text-amber-300" : i < active || active === -1 ? "text-white" : "text-white/30")}>
+          <span key={i} className={cn("transition-colors", i === active ? "text-emerald-300" : i < active || active === -1 ? "text-white" : "text-white/30")}>
             {ch}
           </span>
         ))}
       </p>
-      <p className="text-[10px] uppercase tracking-widest text-white/40">fingerspelling · prototype avatar</p>
+      <p className="text-[10px] tracking-[0.14em] text-white/35 uppercase">Fingerspelled · prototype avatar</p>
     </div>
   );
 }
